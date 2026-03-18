@@ -88,6 +88,7 @@ async def on_message(message):
         content = message.content.replace(f"<@{bot.user.id}>", "").strip()
         user_context = build_message_context(
             message.author,
+            content,
             list(message.mentions),
             bot.user,
             bot.user_profiles
