@@ -1,11 +1,9 @@
 import json
-import re
 from pathlib import Path
 from typing import Any
 
 
 USER_PROFILES_PATH = Path("data/user_profiles.json")
-NTT_TRIGGER_PATTERN = re.compile(r"\bntt\b", re.IGNORECASE)
 
 
 def load_user_profiles() -> dict[str, dict[str, str]]:
@@ -45,7 +43,6 @@ def build_user_context(
         "username": author.name,
         "display_name": getattr(author, "display_name", author.name),
         "mention": author.mention,
-        "no_roast": profile.get("no_roast", ""),
         "roast_nickname": profile.get("nickname", ""),
         "roast_profile": profile.get("roast_profile", ""),
         "extra_instructions": profile.get("extra_instructions", "")
@@ -54,20 +51,12 @@ def build_user_context(
 
 def build_message_context(
     author: Any,
-    content: str = "",
     mentions: list[Any] | None = None,
     bot_user: Any | None = None,
     user_profiles: dict[str, dict[str, str]] | None = None
 ) -> dict[str, str]:
     context = build_user_context(author, user_profiles)
     mentions = mentions or []
-    if NTT_TRIGGER_PATTERN.search(content):
-        context.update(
-            {
-                "mentions_ntt": "true",
-                "protected_name": "NTT"
-            }
-        )
 
     targets = [
         member for member in mentions
@@ -87,7 +76,6 @@ def build_message_context(
             "target_username": target_context["username"],
             "target_display_name": target_context["display_name"],
             "target_mention": target_context["mention"],
-            "target_no_roast": target_context["no_roast"],
             "target_roast_nickname": target_context["roast_nickname"],
             "target_roast_profile": target_context["roast_profile"],
             "target_extra_instructions": target_context["extra_instructions"],

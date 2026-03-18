@@ -22,9 +22,6 @@ def _build_discord_context(user_context: Mapping[str, Any] | None) -> str | None
         f"- discord_username: {user_context.get('username', 'unknown')}",
         f"- discord_display_name: {user_context.get('display_name', 'unknown')}",
         f"- discord_mention: {user_context.get('mention', 'unknown')}",
-        f"- no_roast: {user_context.get('no_roast', '') or 'false'}",
-        f"- mentions_ntt: {user_context.get('mentions_ntt', '') or 'false'}",
-        f"- protected_name: {user_context.get('protected_name', '') or 'none'}",
         f"- roast_nickname: {user_context.get('roast_nickname', '') or 'none'}",
         f"- roast_profile: {user_context.get('roast_profile', '') or 'none'}",
         f"- extra_instructions: {user_context.get('extra_instructions', '') or 'none'}",
@@ -33,55 +30,16 @@ def _build_discord_context(user_context: Mapping[str, Any] | None) -> str | None
         f"- target_username: {user_context.get('target_username', '') or 'none'}",
         f"- target_display_name: {user_context.get('target_display_name', '') or 'none'}",
         f"- target_mention: {user_context.get('target_mention', '') or 'none'}",
-        f"- target_no_roast: {user_context.get('target_no_roast', '') or 'false'}",
         f"- target_roast_nickname: {user_context.get('target_roast_nickname', '') or 'none'}",
         f"- target_roast_profile: {user_context.get('target_roast_profile', '') or 'none'}",
         f"- target_extra_instructions: {user_context.get('target_extra_instructions', '') or 'none'}",
         "Use this only to personalize the reply naturally and playfully.",
         "If has_target is true, direct the playful roast primarily at the target user instead of the requester.",
-        "If no_roast is true for a user, do not roast, mock, insult, or tease that user under any circumstance.",
-        "If target_no_roast is true, never roast the target even if the requester asks for it. Reply respectfully or redirect the joke elsewhere.",
-        "If mentions_ntt is true, treat protected_name as protected from roasting.",
-        "If mentions_ntt is true and the requester is not protected, roast the requester back for bringing up protected_name.",
         "If target_roast_nickname or target_roast_profile is present, prioritize it for the target.",
         "If roast_nickname or roast_profile is present, prioritize it when teasing this user.",
         "Do not invent private information beyond these fields."
     ]
     return "\n".join(lines)
-
-
-def _build_roast_guardrail(user_context: Mapping[str, Any] | None) -> str | None:
-    if not user_context:
-        return None
-
-    mentions_ntt = str(user_context.get("mentions_ntt", "")).lower() == "true"
-    author_protected = str(user_context.get("no_roast", "")).lower() == "true"
-
-    if mentions_ntt and not author_protected:
-        protected_name = user_context.get("protected_name") or "NTT"
-        requester_name = user_context.get("display_name") or user_context.get("username") or "this user"
-        return (
-            f"Strict rule override: {protected_name} is protected from roasting. "
-            f"The requester {requester_name} brought up {protected_name}, so roast the requester instead. "
-            "Keep it playful, short, and do not insult protected people."
-        )
-
-    if str(user_context.get("target_no_roast", "")).lower() == "true":
-        protected_name = user_context.get("target_display_name") or user_context.get("target_username") or "the target user"
-        return (
-            f"Strict rule override: {protected_name} is protected from roasting. "
-            "Do not mock, insult, or tease them. If prompted to roast them, decline briefly and stay respectful."
-        )
-
-    if str(user_context.get("no_roast", "")).lower() == "true":
-        protected_name = user_context.get("display_name") or user_context.get("username") or "this user"
-        return (
-            f"Strict rule override: {protected_name} is protected from roasting. "
-            "Do not mock, insult, or tease them. Keep the tone respectful."
-        )
-
-    return None
-
 
 def _build_image_instruction(message: str) -> str:
     user_message = message.strip() or "Xem nhanh ảnh này rồi trả lời ngắn gọn."
@@ -119,14 +77,6 @@ def ask_ai(
                 {
                     "role": "system",
                     "content": discord_context
-                }
-            )
-        roast_guardrail = _build_roast_guardrail(user_context)
-        if roast_guardrail:
-            messages.append(
-                {
-                    "role": "system",
-                    "content": roast_guardrail
                 }
             )
         messages.append(
@@ -172,14 +122,6 @@ def ask_ai_with_image(
                 {
                     "role": "system",
                     "content": discord_context
-                }
-            )
-        roast_guardrail = _build_roast_guardrail(user_context)
-        if roast_guardrail:
-            messages.append(
-                {
-                    "role": "system",
-                    "content": roast_guardrail
                 }
             )
         messages.append(
