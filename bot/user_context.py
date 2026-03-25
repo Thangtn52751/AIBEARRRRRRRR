@@ -3,8 +3,10 @@ from pathlib import Path
 from typing import Any
 
 
-USER_PROFILES_PATH = Path("data/user_profiles.json")
-GUILD_BIRTHDAY_SETTINGS_PATH = Path("data/guild_birthday_settings.json")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DATA_DIR = PROJECT_ROOT / "data"
+USER_PROFILES_PATH = DATA_DIR / "user_profiles.json"
+GUILD_BIRTHDAY_SETTINGS_PATH = DATA_DIR / "guild_birthday_settings.json"
 
 
 def _load_json_object(path: Path) -> dict[str, Any]:

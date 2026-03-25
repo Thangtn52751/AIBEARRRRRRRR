@@ -6,17 +6,26 @@ import asyncio
 from bot.user_context import build_message_context, load_user_profiles
 from memory.conversation import ConversationMemory
 import os
+from pathlib import Path
 
 load_dotenv()
 
 intents = discord.Intents.default()
 intents.message_content = True
+BOT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = BOT_DIR.parent
+DEFAULT_PERSONALITY_PATH = BOT_DIR / "personality.txt"
+DATA_PERSONALITY_PATH = PROJECT_ROOT / "data" / "personality.txt"
 
 
 class BoBeoBot(commands.Bot):
     def __init__(self) -> None:
         super().__init__(command_prefix="!", intents=intents)
-        with open("data/personality.txt", "r", encoding="utf-8") as f:
+        personality_path = DATA_PERSONALITY_PATH
+        if not personality_path.exists():
+            personality_path = DEFAULT_PERSONALITY_PATH
+
+        with personality_path.open("r", encoding="utf-8") as f:
             self.personality = f.read()
         self.user_profiles = load_user_profiles()
         self.conversation_memory = ConversationMemory()
@@ -141,7 +150,8 @@ async def on_message(message):
     await bot.process_commands(message)
 
 async def load_commands(bot):
+    commands_dir = BOT_DIR / "commands"
 
-    for filename in os.listdir("./bot/commands"):
-        if filename.endswith(".py") and filename != "__init__.py":
-            await bot.load_extension(f"bot.commands.{filename[:-3]}")
+    for command_file in commands_dir.glob("*.py"):
+        if command_file.name != "__init__.py":
+            await bot.load_extension(f"bot.commands.{command_file.stem}")
