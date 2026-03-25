@@ -3,7 +3,8 @@ from discord.ext import commands
 from dotenv import load_dotenv
 from ai.llm_client import ask_ai, ask_ai_with_image, detect_mood
 import asyncio
-from bot.user_context import build_message_context, load_user_profiles
+from bot.birthday_store import BirthdayStore
+from bot.user_context import build_message_context, load_user_profiles, save_user_profiles
 from memory.conversation import ConversationMemory
 import os
 from pathlib import Path
@@ -28,6 +29,9 @@ class BoBeoBot(commands.Bot):
         with personality_path.open("r", encoding="utf-8") as f:
             self.personality = f.read()
         self.user_profiles = load_user_profiles()
+        self.birthday_store = BirthdayStore()
+        if self.birthday_store.migrate_from_profiles(self.user_profiles):
+            save_user_profiles(self.user_profiles)
         self.conversation_memory = ConversationMemory()
         self.user_states: dict[str, dict[str, str]] = {}
         self.guild_id = os.getenv("DISCORD_GUILD_ID")

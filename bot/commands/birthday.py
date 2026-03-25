@@ -9,14 +9,13 @@ from discord.ext import commands, tasks
 from bot.user_context import (
     load_guild_birthday_settings,
     save_guild_birthday_settings,
-    save_user_profiles,
 )
 
 
 class Birthday(commands.Cog):
     birthday_group = app_commands.Group(
         name="birthday",
-        description="Quản lý sinh nhật và kênh thông tin."
+        description="Quản lý sinh nhật và kênh thông báo."
     )
 
     def __init__(self, bot: commands.Bot):
@@ -55,7 +54,7 @@ class Birthday(commands.Cog):
             title="Happy Birthday!",
             description=(
                 f"Hôm nay là ngày sinh nhật {member.mention}.\n"
-                "Chúc bạn có 1 sinh nhật thật nhiều niềm vui, may mắn!"
+                "Chúc bạn có một sinh nhật thật nhiều niềm vui và may mắn!"
             ),
             color=discord.Color.gold()
         )
@@ -107,9 +106,11 @@ class Birthday(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
 
-        profile = self.bot.user_profiles.setdefault(str(interaction.user.id), {})
-        profile["birthday"] = birthday.strftime("%d/%m")
-        save_user_profiles(self.bot.user_profiles)
+        self.bot.birthday_store.set_birthday(
+            interaction.user.id,
+            birthday.day,
+            birthday.month
+        )
 
         configured_channel = None
         if interaction.guild is not None:
@@ -125,7 +126,7 @@ class Birthday(commands.Cog):
         if configured_channel is not None:
             message += f" Đến ngày đó mình sẽ thông báo tại: {configured_channel.mention}."
         elif interaction.guild is not None:
-            message += " Server này chưa set thông báo sinh nhật."
+            message += " Server này chưa set kênh thông báo sinh nhật."
 
         await interaction.response.send_message(message, ephemeral=True)
 
@@ -142,7 +143,7 @@ class Birthday(commands.Cog):
     ) -> None:
         if interaction.guild is None:
             await interaction.response.send_message(
-                "Lệnh này chỉ được trong server.",
+                "Lệnh này chỉ được dùng trong server.",
                 ephemeral=True
             )
             return
@@ -156,7 +157,7 @@ class Birthday(commands.Cog):
 
         if channel.guild.id != interaction.guild.id:
             await interaction.response.send_message(
-                "Hãy chọn 1 kênh trong server này.",
+                "Hãy chọn một kênh trong server này.",
                 ephemeral=True
             )
             return
@@ -207,16 +208,14 @@ class Birthday(commands.Cog):
         description="Xóa ngày sinh nhật đã lưu của bạn."
     )
     async def clear_birthday(self, interaction: discord.Interaction) -> None:
-        profile = self.bot.user_profiles.get(str(interaction.user.id))
-        if not profile or "birthday" not in profile:
+        if self.bot.birthday_store.get_birthday(interaction.user.id) is None:
             await interaction.response.send_message(
                 "Bạn chưa đặt ngày sinh.",
                 ephemeral=True
             )
             return
 
-        profile.pop("birthday", None)
-        save_user_profiles(self.bot.user_profiles)
+        self.bot.birthday_store.delete_birthday(interaction.user.id)
         await interaction.response.send_message(
             "Đã xóa ngày sinh nhật của bạn.",
             ephemeral=True
@@ -228,7 +227,6 @@ class Birthday(commands.Cog):
 
         today = datetime.now(self.timezone).date()
         today_key = today.isoformat()
-        today_display = today.strftime("%d/%m")
         settings_updated = False
 
         for guild_id, guild_setting in self.guild_birthday_settings.items():
@@ -266,10 +264,7 @@ class Birthday(commands.Cog):
 
             last_announced = guild_setting.setdefault("last_announced", {})
 
-            for user_id, profile in self.bot.user_profiles.items():
-                if profile.get("birthday") != today_display:
-                    continue
-
+            for user_id in self.bot.birthday_store.get_users_by_birthday(today.day, today.month):
                 if last_announced.get(user_id) == today_key:
                     continue
 
