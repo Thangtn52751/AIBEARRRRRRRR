@@ -9,51 +9,77 @@ class HelpCommand(commands.Cog):
 
     @app_commands.command(
         name="help",
-        description="Xem danh sách lệnh"
+        description="Xem danh sach lenh"
     )
     async def help_command(self, interaction: discord.Interaction) -> None:
+
         embed = discord.Embed(
-            title="📚 Trung tâm trợ giúp",
+            title="📚 TRUNG TÂM TRỢ GIÚP",
             description=(
-                "Chào mừng đến với **bảng lệnh của bot**.\n"
-                "Dưới đây là các lệnh bạn có thể sử dụng."
+                "✨ **Danh sách các lệnh của bot**\n"
+                "👉 Gõ `/` để Discord gợi ý nhanh\n\n"
+                "━━━━━━━━━━━━━━━━━━"
             ),
             color=discord.Color.blurple()
         )
 
+        # ===== BASIC =====
         embed.add_field(
-            name="📖 Lệnh cơ bản",
+            name="⚙️ • LỆNH CƠ BẢN",
             value=(
-                "`/help` - Xem danh sách tất cả lệnh của bot.\n"
-                "`/ping` - Kiểm tra độ trễ hiện tại của bot."
+                "➤ `/help` ┆ Xem danh sách lệnh\n"
+                "➤ `/ping` ┆ Kiểm tra độ trễ"
             ),
             inline=False
         )
 
+        # ===== USER =====
         embed.add_field(
-            name="👤 Thông tin người dùng",
-            value="`/userinfo` - Xem thông tin cơ bản của một thành viên.",
+            name="👤 • NGƯỜI DÙNG",
+            value="➤ `/userinfo` ┆ Xem thông tin thành viên",
             inline=False
         )
 
+        # ===== BIRTHDAY =====
         embed.add_field(
-            name="🎲 Giải trí",
-            value="`/roll` - Tung xúc xắc ngẫu nhiên từ **1 → 6**.",
+            name="🎂 • SINH NHẬT",
+            value=(
+                "➤ `/birthday set` ┆ Đặt ngày sinh\n"
+                "➤ `/birthday clear` ┆ Xóa ngày sinh\n"
+                "➤ `/birthday channel` ┆ Set kênh thông báo"
+            ),
             inline=False
         )
 
+        # ===== FUN =====
         embed.add_field(
-            name="⚙️ Quản trị bot",
-            value="`/sync` - Đồng bộ lại slash command trong server.",
+            name="🎮 • GIẢI TRÍ",
+            value="➤ `/roll` ┆ Tung xúc xắc (1-6)",
             inline=False
         )
 
+        # ===== ADMIN =====
+        embed.add_field(
+            name="🛠️ • QUẢN TRỊ",
+            value="➤ `/sync` ┆ Đồng bộ lệnh",
+            inline=False
+        )
+
+        # ===== TIP =====
+        embed.add_field(
+            name="💡 MẸO",
+            value="Dùng `/ + tên lệnh` để xem hướng dẫn chi tiết nhanh!",
+            inline=False
+        )
+
+        # ===== FOOTER =====
         embed.set_footer(
-            text=f"Yêu cầu bởi {interaction.user}",
+            text=f"Yêu cầu bởi {interaction.user} • Béo Bot",
             icon_url=interaction.user.display_avatar.url
         )
 
-        if self.bot.user and self.bot.user.display_avatar:
+        # ===== AVATAR BOT =====
+        if self.bot.user:
             embed.set_thumbnail(url=self.bot.user.display_avatar.url)
             embed.set_author(
                 name=self.bot.user.name,

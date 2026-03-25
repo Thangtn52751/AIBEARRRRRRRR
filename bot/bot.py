@@ -1,10 +1,10 @@
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
-from ai.llm_client import ask_ai
+from ai.llm_client import ask_ai, ask_ai_with_image, detect_mood
 import asyncio
-from ai.llm_client import ask_ai_with_image
 from bot.user_context import build_message_context, load_user_profiles
+from memory.conversation import ConversationMemory
 import os
 
 load_dotenv()
@@ -19,6 +19,8 @@ class BoBeoBot(commands.Bot):
         with open("data/personality.txt", "r", encoding="utf-8") as f:
             self.personality = f.read()
         self.user_profiles = load_user_profiles()
+        self.conversation_memory = ConversationMemory()
+        self.user_states: dict[str, dict[str, str]] = {}
         self.guild_id = os.getenv("DISCORD_GUILD_ID")
 
     async def setup_hook(self) -> None:
@@ -58,7 +60,8 @@ class BoBeoBot(commands.Bot):
             send_messages=True,
             embed_links=True,
             attach_files=True,
-            read_message_history=True
+            read_message_history=True,
+            mention_everyone=True
         )
         return discord.utils.oauth_url(
             client_id,
@@ -86,11 +89,16 @@ async def on_message(message):
     if bot.user in message.mentions:
 
         content = message.content.replace(f"<@{bot.user.id}>", "").strip()
+        user_id = str(message.author.id)
+        recent_messages = bot.conversation_memory.get_recent_user_messages(user_id)
+        mood_state = await asyncio.to_thread(detect_mood, content, recent_messages)
+        bot.user_states[user_id] = mood_state
         user_context = build_message_context(
             message.author,
             list(message.mentions),
             bot.user,
-            bot.user_profiles
+            bot.user_profiles,
+            mood_state
         )
 
         try:
@@ -118,6 +126,12 @@ async def on_message(message):
                         user_context
                     )
 
+            stored_user_message = content
+            if not stored_user_message:
+                stored_user_message = "[image attachment]" if message.attachments else "[empty]"
+
+            bot.conversation_memory.add(user_id, "user", stored_user_message)
+            bot.conversation_memory.add(user_id, "assistant", response)
             await message.channel.send(response)
 
         except Exception as e:
